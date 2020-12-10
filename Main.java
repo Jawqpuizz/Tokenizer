@@ -5,7 +5,6 @@ public class Main {
 	    static char input_token;
 	    static boolean firstId;
 	    static boolean firstLit;
-	    static String assignment = "";// to keep each assignment for the output
 	    static String var = "";// 
 	    static boolean isVariable = false; 
 	    static String varVal = "";
@@ -14,8 +13,8 @@ public class Main {
 	    
 	//////////////Main function starts here//////////////////////////////////////  
 	    public static void main(String[] args){
-	    	// type input without the white space
-	        s = "x_2=0;"+"$";
+	    	// Please type input without white spaces!!!
+	        s = "x=-1;y=2;z=---(x+y)*(x+-y);"+"$";
 	        curr_index = 0;
 	        next_token();
 	        do {
@@ -24,8 +23,6 @@ public class Main {
 	        int value = exp();
 	        semicolon();
 	        saveData(var, value);// save each variable to HashMap 
-	        exp_prime();
-	        assignment = "";
 	        }while(input_token != '$');
 	        printOutput();
 	    }
@@ -38,7 +35,6 @@ public class Main {
 	        if (input_token != expected_token)
 	            error();
 	        else
-	        	assignment += input_token;
 	            next_token();
 	    }
 
@@ -75,8 +71,7 @@ public class Main {
 	         
 	        } else if (input_token == '-'){
 	            match('-');
-	            return term() - exp_prime();
-	            
+	            return term() - exp_prime();         
 	            
 	        } else if (input_token == ')' || input_token == '$' || input_token == ';'){
 	        	return 0;
@@ -120,11 +115,14 @@ public class Main {
 	    static int factor(){
 	    	//Fact:
 	    	//	( Exp ) | - Fact | + Fact | Literal | Identifier	
-	        if  (input_token == '('){ // (Exp)
+	        if  (input_token == '('){ // (Exp) 
+	        	String sign = temp; temp = "";// keep a negative sign before the parenthesis
 	            match('(');
 	            int op = exp();
 	            match(')');
-	            return op;
+	            if (sign.length() %2 == 1)
+	            	return op *-1;
+	            else return op;           
 	        } else if(input_token == '-') {    //- Fact
 	        	temp += input_token;
 	        	 match('-');
@@ -151,7 +149,9 @@ public class Main {
 	        	identifier();
 	        	// find value of a variable
 	        	if(store.containsKey(varVal)) {
-	        		return store.get(varVal);
+	        		// if it's negative number check in Temp will need to make it negative berfore return
+	        		if (temp.length() %2 == 1)
+	        		return store.get(varVal) * -1;else return store.get(varVal);
 	        	}else {
 	        		throw new RuntimeException("variable " + varVal +" not found!!");
 	        	}
