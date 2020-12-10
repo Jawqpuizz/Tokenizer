@@ -1,4 +1,4 @@
-
+import java.util.*;
 public class Main {
 	 static String s;
 	    static int curr_index;
@@ -6,28 +6,28 @@ public class Main {
 	    static boolean firstId;
 	    static boolean firstLit;
 	    static String assignment = "";// to keep each assignment for the output
-	    static String var = "";
-	    static boolean isVariable = false;
-	    static String temp ="";
-	    static int val = 0;
-	    static int op1 = 0;
-	    static int op2 = 0;
-
+	    static String var = "";// 
+	    static boolean isVariable = false; 
+	    static String varVal = "";
+	    static String temp = "";//keep value of input as a string before covert it to integer
+	    static Map<String, Integer> store = new HashMap<>();
+	    
+	//////////////Main function starts here//////////////////////////////////////  
 	    public static void main(String[] args){
 	    	// type input without the white space
-	        s = "z=1+2;x=1;y=2;"+"$";
+	        s = "x_2=0;"+"$";
 	        curr_index = 0;
 	        next_token();
 	        do {
 	        firstId = true; isVariable = true;
 	        identifier();
-	        exp();
+	        int value = exp();
 	        semicolon();
-	        saveData();
-	        System.out.println(assignment);
+	        saveData(var, value);// save each variable to HashMap 
+	        exp_prime();
 	        assignment = "";
 	        }while(input_token != '$');
-	      
+	        printOutput();
 	    }
 
 	    static void error(){
@@ -48,92 +48,122 @@ public class Main {
 	        input_token = s.charAt(curr_index++);
 	    }
 
-	    static void exp(){
+	    static int exp(){
 	         if (Character.isDigit(input_token) || input_token == '(' || input_token == '-'
 	        		|| input_token == '+' ||input_token == '_' || Character.isLetter(input_token)){
-	            term();
-	            exp_prime();
-	        } else {
-	            error();
-	        }
+	        	 
+		             int op1 = term();
+		             if(input_token == '+') {
+		             int op2 = op1 + exp_prime();
+		             return op2;
+		             }else if(input_token == '-'){
+		             int op2 = op1 - exp_prime();	
+		             return op2;
+		             }else
+		             return op1;
+		        } else {
+		            error();
+		        }
+	       return 0;
 	    }
 
-	    static void exp_prime(){
-	        if (input_token == '+'){
-	            match('+');
+	    static int exp_prime(){
+	    
+	        if (input_token == '+'){	
+	            match('+');                
+	            return term() + exp_prime();
 	         
-	            term();
-	            exp_prime();
 	        } else if (input_token == '-'){
 	            match('-');
-	            term();
-	            exp_prime();
+	            return term() - exp_prime();
+	            
+	            
 	        } else if (input_token == ')' || input_token == '$' || input_token == ';'){
+	        	return 0;
 	        } else {
 	            error();
 	        }
+	  return 0;
 	    }
 
-	    static void term(){
+	    static int term(){
 	        if (Character.isDigit(input_token) || input_token == '(' || input_token == '-'
 	        		|| input_token == '+' ||input_token == '_' || Character.isLetter(input_token)){
-	            factor();
-	            term_prime();
+	        	 int op = factor();
+	           return op * term_prime();
+	             
 	        } else {
 	            error();
 	        }
+	       return 0;
 	    }
 
-	    static void term_prime(){
+	    static int term_prime(){
+	    	 
 	        switch (input_token){
 	        case '*':
 	            match('*');
-	            factor();
-	            term_prime();
-	            break;
+	            int op = factor();
+	            return op *= term_prime();
 	        case '+':
 	        case '-':
 	        case ')':
 	        case ';':
 	        case '$':
-	            break;
+	            return 1;
 	        default:
 	            error();
 	        }
+	        return 0;
 	    }
 
-	    static void factor(){
+	    static int factor(){
 	    	//Fact:
 	    	//	( Exp ) | - Fact | + Fact | Literal | Identifier	
 	        if  (input_token == '('){ // (Exp)
 	            match('(');
-	            exp();
+	            int op = exp();
 	            match(')');
-	      
+	            return op;
 	        } else if(input_token == '-') {    //- Fact
+	        	temp += input_token;
 	        	 match('-');
-	        	 factor();
-	       
+	        	 return factor();
+	        	 
 	        } else if(input_token == '+') { // + Fact 
+	        	temp += input_token;
 	        	 match('+');
-	        	 factor();
+	        	 return factor();
 	        }  else if(Character.isDigit(input_token)){// Literal
 	        	if(input_token == '0') {
 	        	match(input_token);	
 	        	}else {
 	        	firstLit = true;
-	        	literal(); 	
+	        	// set val back to blank    	
+	        	literal(); 
+	        	int litVal = Integer.parseInt(temp);
+	        	temp = "";
+	        	return litVal;
 	        	}
 	        }else if(Character.isLetter(input_token) || input_token == '_'){//Identifier    	
 	        	firstId = true;
+	        	varVal = "";
 	        	identifier();
+	        	// find value of a variable
+	        	if(store.containsKey(varVal)) {
+	        		return store.get(varVal);
+	        	}else {
+	        		throw new RuntimeException("variable " + varVal +" not found!!");
+	        	}
 	        
 	        }
+	      return 0;
 	    }
 	    static void literal() {
 	    	// Literal:
 	    	//0 | NonZeroDigit Digit* we check if it's 0 before going inside this function
-	    	if(Character.isDigit(input_token))temp += input_token;
+	    	if(Character.isDigit(input_token)) temp += input_token;
+	    	
 	    	if(firstLit == true) {
 	    		// first Literal character needs to be non-zero digit 
 	    		if(Character.isDigit(input_token) && input_token != '0'){
@@ -155,6 +185,7 @@ public class Main {
 	    static void identifier() {
 	    		
 	    	if(input_token != '=' && isVariable == true)   var += input_token;
+	        
 	    	if (firstId == true) {
 	    		// first character of identifier can be a letter only
 	    		//Identifier:
@@ -162,6 +193,7 @@ public class Main {
 	    		
 	    		if(Character.isLetter(input_token) || input_token == '_') {
  	    			firstId = false;
+ 	    			varVal += input_token;
 	    			match(input_token);
 	    			identifier();
 	    			
@@ -174,10 +206,10 @@ public class Main {
 	    		// can be only a letter or digit a|...|z|A|...|Z|_|0|...|9
 	    		if(Character.isLetter(input_token) || input_token == '_'
 	    			|| Character.isDigit(input_token)) {
+	    			varVal += input_token;
 	    			match(input_token);
 	    			identifier();			
 	    		}else if(input_token == '=') { 
-	    			var =""; 
 	    			isVariable = false;
 	    			match(input_token);		
 	    		}else if(input_token == '$'|| input_token == '+' || input_token == '*' || input_token == '-'
@@ -188,8 +220,9 @@ public class Main {
 	    		
 	    		
 	    	}
+	    	
 	    }
-	    
+	   
 	     static void semicolon() {
 	    	 if(input_token == ';') {
 	    	 match(input_token);
@@ -198,8 +231,23 @@ public class Main {
 	    	 }
 	     }
 	     
-	     static void saveData() {
+	     static void saveData(String v, int value) {
+	    	 if(store.containsKey(v)) {
+	    		 store.put(v,store.get(v) + value);
+	    	 }else {
+	    		 store.put(v, value);
+	    	 }
+	    	 // set var to blank 
+	    	 var = "";
 	    	 
 	     }
+	     
+	    static void printOutput() {
+	    	// print data from hashmap 
+	    	for(Map.Entry<String, Integer> set: store.entrySet()) {
+	    		System.out.println(set.getKey() +" = "+set.getValue());
+	    	}
+	    	
+	    }
 
 }
